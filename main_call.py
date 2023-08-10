@@ -22,34 +22,52 @@ class MyWindow(QWidget):
         self.ce1_btn = QCheckBox('CE1')
         self.ce1_btn.toggled.connect(self.on_ce1_btn_toggled)
         self.ce1_btn.setProperty('666', 'CE1')
+        self.ce1_btn.setShortcut(Qt.Key.Key_1)
+
         self.ce2_btn = QCheckBox('CE2')
         self.ce2_btn.toggled.connect(self.on_ce2_btn_toggled)
         self.ce2_btn.setProperty('666', 'CE2')
+        self.ce2_btn.setShortcut(Qt.Key.Key_2)
+
         self.ce3_btn = QCheckBox('CE3')
         self.ce3_btn.toggled.connect(self.on_ce3_btn_toggled)
         self.ce3_btn.setProperty('666', 'CE3')
+        self.ce3_btn.setShortcut(Qt.Key.Key_3)
+
         self.ce4_btn = QCheckBox('CE4')
         self.ce4_btn.toggled.connect(self.on_ce4_btn_toggled)
         self.ce4_btn.setProperty('666', 'CE4')
+        self.ce4_btn.setShortcut(Qt.Key.Key_4)
+
         self.ce5_btn = QCheckBox('CE5')
         self.ce5_btn.toggled.connect(self.on_ce5_btn_toggled)
         self.ce5_btn.setProperty('666', 'CE5')
+        self.ce5_btn.setShortcut(Qt.Key.Key_5)
 
         self.ae_hailstorm_btn = QCheckBox('AE Hailstorm')
         self.ae_hailstorm_btn.toggled.connect(self.on_ae1_btn_toggled)
         self.ae_hailstorm_btn.setProperty('666', 'AE Hailstorm')
+        self.ae_hailstorm_btn.setShortcut(Qt.Key.Key_Q)
+
         self.ae_pseudocystic_btn = QCheckBox('AE Pseudocystic')
         self.ae_pseudocystic_btn.toggled.connect(self.on_ae2_btn_toggled)
         self.ae_pseudocystic_btn.setProperty('666', 'AE Pseudocystic')
+        self.ae_pseudocystic_btn.setShortcut(Qt.Key.Key_W)
+
         self.ae_hemangioma_like_btn = QCheckBox('AE Hemangioma-like')
         self.ae_hemangioma_like_btn.toggled.connect(self.on_ae3_btn_toggled)
         self.ae_hemangioma_like_btn.setProperty('666', 'AE Hemangioma-like')
+        self.ae_hemangioma_like_btn.setShortcut(Qt.Key.Key_E)
+
         self.ae_ossification_btn = QCheckBox('AE Ossification')
         self.ae_ossification_btn.toggled.connect(self.on_ae4_btn_toggled)
         self.ae_ossification_btn.setProperty('666', 'AE Ossification')
+        self.ae_ossification_btn.setShortcut(Qt.Key.Key_R)
+
         self.ae_metastasis_like_btn = QCheckBox('AE Metastasis-like')
         self.ae_metastasis_like_btn.toggled.connect(self.on_ae5_btn_toggled)
         self.ae_metastasis_like_btn.setProperty('666', 'AE Metastasis-like')
+        self.ae_metastasis_like_btn.setShortcut(Qt.Key.Key_T)
 
         self.ID_label = QLabel('住院号')
         self.ID_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
@@ -108,11 +126,12 @@ class MyWindow(QWidget):
         self.images_list.currentItemChanged.connect(self.images_list_currentItemChanged)
 
         self.image_text = QTextEdit()
-        self.image_text.setReadOnly(True)
         self.image_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.save_btn = QPushButton('保存')
         self.save_btn.clicked.connect(self.save_btn_clicked)
+        self.save_btn.setShortcut(Qt.Key.Key_S)
+
         self.export_btn = QPushButton('导出')
         self.export_btn.clicked.connect(self.export_btn_clicked)
 
@@ -214,7 +233,15 @@ class MyWindow(QWidget):
         self.max_num = len(self.atlas_data)
 
         # 定义初始值
-        self.patient_index = 0
+        if not os.path.exists('./asset/indexes.pkl'):
+            self.patient_index = 0
+            self.image_index = 0
+        else:
+            with open('./asset/indexes.pkl', 'rb') as f:
+                self.indexes = pickle.loads(f.read())
+                self.patient_index = self.indexes[0]
+                self.image_index = self.indexes[1]
+                self.flag = True
         font = QFont('Times New Roman', 16)
 
         # 获取患者列表
@@ -228,11 +255,33 @@ class MyWindow(QWidget):
             self.patient_item_list.append(list_item)
         self.patient_list.setCurrentItem(self.patient_item_list[self.patient_index])
 
+        # 设置快捷键
+        shortcut_up = QShortcut(QKeySequence(Qt.Key.Key_Up), self)
+        shortcut_left = QShortcut(QKeySequence(Qt.Key.Key_Left), self)
+        shortcut_m = QShortcut(QKeySequence(Qt.Key.Key_M), self)
+        shortcut_up.activated.connect(self.pre_patient)
+        shortcut_left.activated.connect(self.pre_patient)
+        shortcut_m.activated.connect(self.pre_patient)
+
+        shortcut_down = QShortcut(QKeySequence(Qt.Key.Key_Down), self)
+        shortcut_right = QShortcut(QKeySequence(Qt.Key.Key_Right), self)
+        shortcut_comma = QShortcut(QKeySequence(Qt.Key.Key_Comma), self)
+        shortcut_down.activated.connect(self.next_patient)
+        shortcut_right.activated.connect(self.next_patient)
+        shortcut_comma.activated.connect(self.next_patient)
+
+        shortcut_k = QShortcut(QKeySequence(Qt.Key.Key_K), self)
+        shortcut_k.activated.connect(self.pre_image)
+
+        shortcut_l = QShortcut(QKeySequence(Qt.Key.Key_L), self)
+        shortcut_l.activated.connect(self.next_image)
+
         self.status_bar.showMessage('Ready!')
 
     def setting_some_data(self):
         # 获取图像列表
         self.setting_image_list()
+        self.flag = False
 
         # 设置患者数据
         self.setting_data()
@@ -249,9 +298,12 @@ class MyWindow(QWidget):
         tif.setName(curr_image_path)
         tif.setWidth(self.image_text.size().width())
         tc.insertImage(tif, QTextFrameFormat.Position.InFlow)
+        self.image_text.setReadOnly(True)
 
     def setting_image_list(self):
-        self.image_index = 0
+        if not self.flag:
+            self.image_index = 0
+
         self.exam_ID = list(self.atlas_data[self.patient_index].keys())[0]
         self.images_Path = self.atlas_data[self.patient_index][self.exam_ID]['images_Path']
         font = QFont('Times New Roman', 16)
@@ -316,6 +368,11 @@ class MyWindow(QWidget):
     def save_btn_clicked(self):
         with open('./asset/atlas.pkl', 'wb') as f:
             pickle.dump(self.atlas_data, f)
+
+        with open('./asset/indexes.pkl', 'wb') as f:
+            indexes = (self.patient_index, self.image_index)
+            pickle.dump(indexes, f)
+
         self.status_bar.showMessage('已保存！', 5000)
 
     def export_btn_clicked(self):
@@ -352,6 +409,26 @@ class MyWindow(QWidget):
 
     def _export_data(self):
         self.export_df.loc[len(self.export_df)] = self.export_data_list
+
+    def next_image(self):
+        if self.image_index < self.image_max_num - 1:
+            self.image_index += 1
+            self.images_list.setCurrentItem(self.image_item_list[self.image_index])
+
+    def pre_image(self):
+        if self.image_index > 0:
+            self.image_index -= 1
+            self.images_list.setCurrentItem(self.image_item_list[self.image_index])
+
+    def next_patient(self):
+        if self.patient_index < self.max_num - 1:
+            self.patient_index += 1
+            self.patient_list.setCurrentItem(self.patient_item_list[self.patient_index])
+
+    def pre_patient(self):
+        if self.patient_index > 0:
+            self.patient_index -= 1
+            self.patient_list.setCurrentItem(self.patient_item_list[self.patient_index])
 
     def on_ce1_btn_toggled(self, checked):
         if checked:
