@@ -4,9 +4,9 @@ import time
 
 from utils import get_data
 
-from PyQt6.QtWidgets import *
-from PyQt6.QtCore import *
-from PyQt6.QtGui import *
+from PySide6.QtWidgets import *
+from PySide6.QtCore import *
+from PySide6.QtGui import *
 import pandas as pd
 
 
@@ -104,7 +104,7 @@ class MyWindow(QWidget):
         self.exam_Diag_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         self.pathology_See_label = QLabel('病\n理\n所\n见')
 
-        font = QFont('Times New Roman', 18)
+        font = QFont('Times New Roman', 17)
         self.exam_See_text = QTextEdit()
         self.exam_See_text.setReadOnly(True)
         self.exam_See_text.setFont(font)
@@ -113,7 +113,7 @@ class MyWindow(QWidget):
         self.exam_Diag_text.setFont(font)
         self.pathology_See_text = QTextEdit()
         self.pathology_See_text.setReadOnly(True)
-        self.pathology_See_text.setFont(font)
+        self.pathology_See_text.setFont(QFont('Times New Roman', 15))
 
         self.patient_list_label = QLabel('患者列表')
         self.patient_list_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
@@ -189,9 +189,9 @@ class MyWindow(QWidget):
         patient_list_layout.addWidget(self.export_btn)
 
         other_layout = QHBoxLayout()
-        other_layout.addWidget(self.status_bar, 2)
+        other_layout.addWidget(self.status_bar, 1)
         other_layout.addWidget(self.pathology_See_label)
-        other_layout.addWidget(self.pathology_See_text, 8)
+        other_layout.addWidget(self.pathology_See_text, 9)
 
         images_list_layout = QVBoxLayout()
         images_list_layout.addWidget(self.images_list_label)
@@ -234,14 +234,23 @@ class MyWindow(QWidget):
 
         # 定义初始值
         if not os.path.exists('./asset/indexes.pkl'):
-            self.patient_index = 0
-            self.image_index = 0
+            self.indexes = (0, 0)
+            self.patient_index = self.indexes[0]
+            self.image_index = self.indexes[1]
+            self.flag = True
         else:
             with open('./asset/indexes.pkl', 'rb') as f:
                 self.indexes = pickle.loads(f.read())
                 self.patient_index = self.indexes[0]
                 self.image_index = self.indexes[1]
                 self.flag = True
+
+        if not os.path.exists('./asset/selected_patient_list.pkl'):
+            self.selected_patient_list = set()
+        else:
+            with open('./asset/selected_patient_list.pkl', 'rb') as f:
+                self.selected_patient_list = pickle.loads(f.read())
+
         font = QFont('Times New Roman', 16)
 
         # 获取患者列表
@@ -253,41 +262,48 @@ class MyWindow(QWidget):
             list_item.setFont(font)
             list_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.patient_item_list.append(list_item)
+
+        # 设置列表项颜色
+        for i in range(self.max_num):
+            if i in self.selected_patient_list:
+                self.setting_color(None, i)
+
         self.patient_list.setCurrentItem(self.patient_item_list[self.patient_index])
 
         # 设置快捷键
         shortcut_up = QShortcut(QKeySequence(Qt.Key.Key_Up), self)
-        shortcut_left = QShortcut(QKeySequence(Qt.Key.Key_Left), self)
-        shortcut_m = QShortcut(QKeySequence(Qt.Key.Key_M), self)
         shortcut_up.activated.connect(self.pre_patient)
-        shortcut_left.activated.connect(self.pre_patient)
-        shortcut_m.activated.connect(self.pre_patient)
 
         shortcut_down = QShortcut(QKeySequence(Qt.Key.Key_Down), self)
-        shortcut_right = QShortcut(QKeySequence(Qt.Key.Key_Right), self)
-        shortcut_comma = QShortcut(QKeySequence(Qt.Key.Key_Comma), self)
         shortcut_down.activated.connect(self.next_patient)
-        shortcut_right.activated.connect(self.next_patient)
-        shortcut_comma.activated.connect(self.next_patient)
 
-        shortcut_k = QShortcut(QKeySequence(Qt.Key.Key_K), self)
-        shortcut_k.activated.connect(self.pre_image)
+        shortcut_left = QShortcut(QKeySequence(Qt.Key.Key_Left), self)
+        shortcut_left.activated.connect(self.pre_image)
 
-        shortcut_l = QShortcut(QKeySequence(Qt.Key.Key_L), self)
-        shortcut_l.activated.connect(self.next_image)
+        shortcut_right = QShortcut(QKeySequence(Qt.Key.Key_Right), self)
+        shortcut_right.activated.connect(self.next_image)
 
         self.status_bar.showMessage('Ready!')
 
     def setting_some_data(self):
         # 获取图像列表
         self.setting_image_list()
-        self.flag = False
 
         # 设置患者数据
         self.setting_data()
 
-        # 获取复选框状态
-        self.load_all_check_box()
+        # 设置列表项颜色
+        index = list(range(self.image_max_num))
+        index.reverse()
+        if self.flag:
+            index.pop(self.indexes[1])
+            index.append(self.indexes[1])
+        for i in index:
+            self.image_index = i
+            # 获取复选框状态
+            self.load_all_check_box()
+
+        self.flag = False
 
     def setting_image(self):
         curr_image_path = self.images_Path[self.image_index][0]
@@ -299,6 +315,7 @@ class MyWindow(QWidget):
         tif.setWidth(self.image_text.size().width())
         tc.insertImage(tif, QTextFrameFormat.Position.InFlow)
         self.image_text.setReadOnly(True)
+        self.image_text.setAttribute(Qt.WidgetAttribute.WA_Disabled, True)
 
     def setting_image_list(self):
         if not self.flag:
@@ -373,6 +390,9 @@ class MyWindow(QWidget):
             indexes = (self.patient_index, self.image_index)
             pickle.dump(indexes, f)
 
+        with open('./asset/selected_patient_list.pkl', 'wb') as f:
+            pickle.dump(self.selected_patient_list, f)
+
         self.status_bar.showMessage('已保存！', 5000)
 
     def export_btn_clicked(self):
@@ -435,60 +455,81 @@ class MyWindow(QWidget):
             self.changeStatus(self.ce1_btn, True)
         else:
             self.unchecked()
+            self.erase_color()
 
     def on_ce2_btn_toggled(self, checked):
         if checked:
             self.changeStatus(self.ce2_btn, True)
         else:
             self.unchecked()
+            self.erase_color()
 
     def on_ce3_btn_toggled(self, checked):
         if checked:
             self.changeStatus(self.ce3_btn, True)
         else:
             self.unchecked()
+            self.erase_color()
 
     def on_ce4_btn_toggled(self, checked):
         if checked:
             self.changeStatus(self.ce4_btn, True)
         else:
             self.unchecked()
+            self.erase_color()
 
     def on_ce5_btn_toggled(self, checked):
         if checked:
             self.changeStatus(self.ce5_btn, True)
         else:
             self.unchecked()
+            self.erase_color()
 
     def on_ae1_btn_toggled(self, checked):
         if checked:
             self.changeStatus(self.ae_hailstorm_btn, True)
         else:
             self.unchecked()
+            self.erase_color()
 
     def on_ae2_btn_toggled(self, checked):
         if checked:
             self.changeStatus(self.ae_pseudocystic_btn, True)
         else:
             self.unchecked()
+            self.erase_color()
 
     def on_ae3_btn_toggled(self, checked):
         if checked:
             self.changeStatus(self.ae_hemangioma_like_btn, True)
         else:
             self.unchecked()
+            self.erase_color()
 
     def on_ae4_btn_toggled(self, checked):
         if checked:
             self.changeStatus(self.ae_ossification_btn, True)
         else:
             self.unchecked()
+            self.erase_color()
 
     def on_ae5_btn_toggled(self, checked):
         if checked:
             self.changeStatus(self.ae_metastasis_like_btn, True)
         else:
             self.unchecked()
+            self.erase_color()
+
+    def erase_color(self):
+        self.image_item_list[self.image_index].setBackground(QColor(255, 255, 255))
+        self.patient_item_list[self.patient_index].setBackground(QColor(255, 255, 255))
+
+    def setting_color(self, image_index, patient_index):
+        if image_index is not None:
+            self.image_item_list[image_index].setBackground(QColor(156, 252, 229))
+        if patient_index is not None:
+            self.patient_item_list[patient_index].setBackground(QColor(156, 252, 229))
+            self.selected_patient_list.add(patient_index)
 
     def changeStatus(self, btn, setting_status):
         # 禁用信号与槽
@@ -516,8 +557,10 @@ class MyWindow(QWidget):
 
         if setting_status:
             self.atlas_data[self.patient_index][self.exam_ID]['images_Path'][self.image_index][1] = btn.property('666')
+
         if btn:
             btn.setChecked(True)
+            self.setting_color(self.image_index, self.patient_index)
 
         # 恢复信号与槽
         self.ce1_btn.toggled.connect(self.on_ce1_btn_toggled)
@@ -543,6 +586,10 @@ if __name__ == '__main__':
     # 设置样式
     with open('./asset/stylesheet.qss', 'r', 1, 'utf-8') as f:
         app.setStyleSheet(f.read())
+
+    # 设置窗口图标
+    app_icon = QIcon('./asset/disease.png')
+    app.setWindowIcon(app_icon)
 
     window = MyWindow()
     window.show()
