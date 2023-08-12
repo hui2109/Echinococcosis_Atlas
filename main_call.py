@@ -1,13 +1,15 @@
 import os.path
+import pathlib
 import pickle
+import sys
 import time
 
-from utils import get_data
-
-from PySide6.QtWidgets import *
+import pandas as pd
 from PySide6.QtCore import *
 from PySide6.QtGui import *
-import pandas as pd
+from PySide6.QtWidgets import *
+
+from utils import get_data
 
 
 class MyWindow(QWidget):
@@ -579,9 +581,10 @@ class MyWindow(QWidget):
 
 
 if __name__ == '__main__':
-    import sys
-
     app = QApplication(sys.argv)
+
+    # 更改工作目录
+    os.chdir(pathlib.Path(__file__).parent)
 
     # 设置样式
     with open('./asset/stylesheet.qss', 'r', 1, 'utf-8') as f:
