@@ -257,7 +257,7 @@ class MyWindow(QWidget):
         self.patient_item_list = []
         for i in range(self.max_num):
             exam_ID = list(self.atlas_data[i].keys())[0]
-            list_item = QListWidgetItem(self.atlas_data[i][exam_ID]['name'], self.patient_list)
+            list_item = QListWidgetItem(str(i + 1) + '. ' + self.atlas_data[i][exam_ID]['name'], self.patient_list)
             list_item.setData(666, i)
             list_item.setFont(font)
             list_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
