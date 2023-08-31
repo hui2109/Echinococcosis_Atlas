@@ -313,7 +313,7 @@ class MyWindow(QWidget):
 
         tc = self.image_text.textCursor()
         tif = QTextImageFormat()
-        tif.setName(curr_image_path)
+        tif.setName(curr_image_path.replace('\\', '/'))
         tif.setWidth(self.image_text.size().width())
         tc.insertImage(tif, QTextFrameFormat.Position.InFlow)
         self.image_text.setReadOnly(True)
@@ -398,14 +398,24 @@ class MyWindow(QWidget):
         self.status_bar.showMessage('已保存！', 5000)
 
     def export_btn_clicked(self):
+        # self.export_df = pd.DataFrame(
+        #     columns=['Image Path', 'Image Type', 'exam ID', 'exam Datetime', 'pathology See', 'pathology Diag'])
         self.export_df = pd.DataFrame(
-            columns=['Image Path', 'Image Type', 'exam ID', 'exam Datetime', 'pathology See', 'pathology Diag'])
+            columns=['Image Path', 'Image Type', 'Exam ID', 'ID', 'Name', 'Sex', 'Age', 'Exam Datetime', 'Exam See', 'Exam Diag', 'Pathology See', 'pathology Diag'])
         for patient in self.atlas_data:
             exam_ID = list(patient.keys())[0]
             patient_info = patient[exam_ID]
-            pathology_Diag = patient_info['pathology_Diag']
-            pathology_See = patient_info['pathology_See']
+
+            ID = patient_info['ID']
+            name = patient_info['name']
+            sex = patient_info['sex']
+            age = patient_info['age']
             exam_Datetime = patient_info['exam_Datetime']
+            exam_See = patient_info['exam_See']
+            exam_Diag = patient_info['exam_Diag']
+            pathology_See = patient_info['pathology_See']
+            pathology_Diag = patient_info['pathology_Diag']
+
             for ip, _type in patient_info['images_Path']:
                 if _type != '':
                     image_path = ip
@@ -414,7 +424,13 @@ class MyWindow(QWidget):
                         image_path,
                         image_type,
                         exam_ID,
+                        ID,
+                        name,
+                        sex,
+                        age,
                         exam_Datetime.replace('-', '/'),
+                        exam_See,
+                        exam_Diag,
                         pathology_See,
                         pathology_Diag
                     ]
