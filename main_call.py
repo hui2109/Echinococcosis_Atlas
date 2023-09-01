@@ -436,14 +436,18 @@ class MyWindow(QWidget):
                     ]
                     self._export_data()
 
+        dir_name = 'exported' + '_' + str(int(time.time()))
+        if not os.path.exists(f'./exported/{dir_name}'):
+            os.makedirs(f'./exported/{dir_name}')
+
         if len(self.export_df) > 0:
-            file_name = os.path.join('./asset', 'exported' + '_' + str(int(time.time())) + '.xlsx')
+            file_name = os.path.join(f'./exported/{dir_name}', '筛选结果.xlsx')
             # 导出为xlsx格式
             with pd.ExcelWriter(file_name) as writer:
                 self.export_df.to_excel(writer, index=False)
             # 导出为json格式
-            # with open('asset/exported/aaa.json', 'w', 1, 'utf-8') as f:
-            #     f.write(self.export_df.to_json(orient="records", force_ascii=False))
+            with open(os.path.join(f'./exported/{dir_name}', '筛选结果.json'), 'w', 1, 'utf-8') as f:
+                f.write(self.export_df.to_json(orient="records", force_ascii=False))
             self.status_bar.showMessage('已成功导出！', 5000)
 
     def _export_data(self):
