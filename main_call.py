@@ -398,8 +398,6 @@ class MyWindow(QWidget):
         self.status_bar.showMessage('已保存！', 5000)
 
     def export_btn_clicked(self):
-        # self.export_df = pd.DataFrame(
-        #     columns=['Image Path', 'Image Type', 'exam ID', 'exam Datetime', 'pathology See', 'pathology Diag'])
         self.export_df = pd.DataFrame(
             columns=['Image Path', 'Image Type', 'Exam ID', 'ID', 'Name', 'Sex', 'Age', 'Exam Datetime', 'Exam See', 'Exam Diag', 'Pathology See', 'pathology Diag'])
         for patient in self.atlas_data:
@@ -418,7 +416,9 @@ class MyWindow(QWidget):
 
             for ip, _type in patient_info['images_Path']:
                 if _type != '':
-                    image_path = ip
+                    _image_path = ip.replace('\\', '/')
+                    image_path = pathlib.Path(_image_path).resolve(strict=True)
+                    image_path = '=HYPERLINK("' + str(image_path) + f'","{name}")'
                     image_type = _type
                     self.export_data_list = [
                         image_path,
@@ -436,13 +436,14 @@ class MyWindow(QWidget):
                     ]
                     self._export_data()
 
-        if not os.path.exists('./asset/exported'):
-            os.makedirs('./asset/exported')
-
         if len(self.export_df) > 0:
-            file_name = os.path.join('./asset/exported', 'exported' + '_' + str(int(time.time())) + '.xlsx')
+            file_name = os.path.join('./asset', 'exported' + '_' + str(int(time.time())) + '.xlsx')
+            # 导出为xlsx格式
             with pd.ExcelWriter(file_name) as writer:
                 self.export_df.to_excel(writer, index=False)
+            # 导出为json格式
+            # with open('asset/exported/aaa.json', 'w', 1, 'utf-8') as f:
+            #     f.write(self.export_df.to_json(orient="records", force_ascii=False))
             self.status_bar.showMessage('已成功导出！', 5000)
 
     def _export_data(self):
